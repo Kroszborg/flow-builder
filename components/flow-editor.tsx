@@ -40,10 +40,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import "reactflow/dist/style.css";
-// import { NodeResizer } from "@reactflow/node-resizer"
 import "@reactflow/node-resizer/dist/style.css";
 import { useHotkeys } from "react-hotkeys-hook";
-// import { useDebounce } from "@/hooks/use-debounce"
+import { useDebounce } from "@/hooks/use-debounce";
 
 const nodeTypes = {
   custom: CustomNode,
@@ -71,12 +70,14 @@ function FlowEditorContent({
   const [nodeDescription, setNodeDescription] = useState("");
   const [nodeType, setNodeType] = useState("custom");
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { project, getNodes, getEdges, setViewport, zoomIn, zoomOut, fitView } =
     useReactFlow();
 
-  // const debouncedNodes = useDebounce(nodes, 1000)
-  // const debouncedEdges = useDebounce(edges, 1000)
+  // Debounce the nodes and edges changes
+  const debouncedNodes = useDebounce(nodes, 1000);
+  const debouncedEdges = useDebounce(edges, 1000);
 
   useEffect(() => {
     if (initialNodes.length > 0 || initialEdges.length > 0) {
@@ -84,41 +85,21 @@ function FlowEditorContent({
     }
   }, [initialNodes, initialEdges, fitView]);
 
+  // Handle auto-saving when nodes or edges change
   useEffect(() => {
-    let saveTimeout: NodeJS.Timeout;
-
-    const saveFlow = () => {
-      if (onSave) {
-        const currentNodes = getNodes();
-        const currentEdges = getEdges();
-        onSave(currentNodes, currentEdges);
-      }
-    };
-
-    const debouncedSave = () => {
-      clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(saveFlow, 1000); // Debounce for 1 second
-    };
-
-    // Call debouncedSave whenever nodes or edges change
-    debouncedSave();
-
-    // Also set up an autosave timer
-    const autosaveTimer = setInterval(saveFlow, 30000); // Autosave every 30 seconds
-
-    return () => {
-      clearTimeout(saveTimeout);
-      clearInterval(autosaveTimer);
-    };
-  }, [nodes, edges, onSave, getNodes, getEdges]);
-
-  useEffect(() => {
-    if (onSave) {
-      const currentNodes = getNodes();
-      const currentEdges = getEdges();
-      onSave(currentNodes, currentEdges);
+    if (!isReadOnly && onSave && isDirty) {
+      const saveFlow = () => {
+        onSave(debouncedNodes, debouncedEdges);
+        setIsDirty(false);
+      };
+      saveFlow();
     }
-  }, [onSave, getNodes, getEdges]); // Removed unnecessary dependencies: nodes, edges
+  }, [debouncedNodes, debouncedEdges, onSave, isReadOnly, isDirty]);
+
+  // Mark as dirty when nodes or edges change
+  useEffect(() => {
+    setIsDirty(true);
+  }, []);
 
   const onConnect = useCallback(
     (params: Connection | Edge) => {
@@ -160,12 +141,11 @@ function FlowEditorContent({
 
   const handleSave = useCallback(() => {
     if (onSave && !isReadOnly) {
-      const currentNodes = getNodes();
-      const currentEdges = getEdges();
-      onSave(currentNodes, currentEdges);
+      onSave(nodes, edges);
+      setIsDirty(false);
       toast.success("Flow saved successfully!");
     }
-  }, [getNodes, getEdges, onSave, isReadOnly]);
+  }, [nodes, edges, onSave, isReadOnly]);
 
   const handleAutoLayout = useCallback(() => {
     const layoutedNodes = nodes.map((node, index) => {
@@ -273,7 +253,7 @@ function FlowEditorContent({
               <Plus className="w-4 h-4 mr-2" />
               Add Node
             </Button>
-            <Button onClick={handleSave} variant="outline">
+            <Button onClick={handleSave} variant="outline" disabled={!isDirty}>
               <Save className="w-4 h-4 mr-2" />
               Save Flow
             </Button>

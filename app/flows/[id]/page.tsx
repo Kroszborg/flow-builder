@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Edit, Eye } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { type Node, type Edge, ReactFlowProvider } from "reactflow";
+import { type Node, type Edge } from "reactflow";
 import { flowStorage } from "@/lib/flow-storage";
 import type { FlowData } from "@/types/flow";
 
@@ -21,12 +21,7 @@ export default function FlowDetail() {
     const loadFlow = () => {
       const loadedFlow = flowStorage.getFlow(params.id as string);
       if (loadedFlow) {
-        // Ensure updatedAt is present
-        const flowWithUpdatedAt: FlowData = {
-          ...loadedFlow,
-          updatedAt: loadedFlow.updatedAt || loadedFlow.createdAt,
-        };
-        setFlow(flowWithUpdatedAt);
+        setFlow(loadedFlow);
       } else {
         toast.error("Flow not found");
         router.push("/flows");
@@ -34,10 +29,6 @@ export default function FlowDetail() {
     };
 
     loadFlow();
-    // Reload flow data every 5 seconds
-    const reloadInterval = setInterval(loadFlow, 5000);
-
-    return () => clearInterval(reloadInterval);
   }, [params.id, router]);
 
   const handleSave = (nodes: Node[], edges: Edge[]) => {
@@ -53,7 +44,6 @@ export default function FlowDetail() {
     const saved = flowStorage.saveFlow(updatedFlow);
     if (saved) {
       setFlow(updatedFlow);
-      toast.success("Flow updated successfully!");
     } else {
       toast.error("Failed to save flow");
     }
@@ -81,15 +71,13 @@ export default function FlowDetail() {
           {isEditMode ? "View Mode" : "Edit Mode"}
         </Button>
       </div>
-      <ReactFlowProvider>
-        <FlowEditor
-          initialNodes={flow.nodes}
-          initialEdges={flow.edges}
-          onSave={isEditMode ? handleSave : undefined}
-          flowId={flow.id}
-          isReadOnly={!isEditMode}
-        />
-      </ReactFlowProvider>
+      <FlowEditor
+        initialNodes={flow.nodes}
+        initialEdges={flow.edges}
+        onSave={isEditMode ? handleSave : undefined}
+        flowId={flow.id}
+        isReadOnly={!isEditMode}
+      />
     </div>
   );
 }
