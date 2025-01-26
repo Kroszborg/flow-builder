@@ -9,27 +9,24 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { type Node, type Edge, ReactFlowProvider } from "reactflow";
 import { flowStorage } from "@/lib/flow-storage";
-
-interface Flow {
-  id: string;
-  name: string;
-  nodes: Node[];
-  edges: Edge[];
-  createdAt: string;
-  updatedAt: string;
-}
+import type { FlowData } from "@/types/flow";
 
 export default function FlowDetail() {
   const params = useParams();
   const router = useRouter();
-  const [flow, setFlow] = useState<Flow | null>(null);
+  const [flow, setFlow] = useState<FlowData | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     const loadFlow = () => {
       const loadedFlow = flowStorage.getFlow(params.id as string);
       if (loadedFlow) {
-        setFlow(loadedFlow);
+        // Ensure updatedAt is present
+        const flowWithUpdatedAt: FlowData = {
+          ...loadedFlow,
+          updatedAt: loadedFlow.updatedAt || loadedFlow.createdAt,
+        };
+        setFlow(flowWithUpdatedAt);
       } else {
         toast.error("Flow not found");
         router.push("/flows");
@@ -37,15 +34,16 @@ export default function FlowDetail() {
     };
 
     loadFlow();
-    const interval = setInterval(loadFlow, 5000); // Reload every 5 seconds
+    // Reload flow data every 5 seconds
+    const reloadInterval = setInterval(loadFlow, 5000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(reloadInterval);
   }, [params.id, router]);
 
   const handleSave = (nodes: Node[], edges: Edge[]) => {
     if (!flow) return;
 
-    const updatedFlow = {
+    const updatedFlow: FlowData = {
       ...flow,
       nodes,
       edges,

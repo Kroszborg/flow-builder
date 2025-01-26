@@ -6,6 +6,8 @@ export interface FlowData {
   nodes: Node[]
   edges: Edge[]
   createdAt: string
-  updatedAt?: string
+  updatedAt: string // Change this to be required
 }
+
+// Remove the separate Flow interface if it's not needed elsewhere
 

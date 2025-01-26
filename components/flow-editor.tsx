@@ -40,10 +40,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import "reactflow/dist/style.css";
-import { NodeResizer } from "@reactflow/node-resizer";
+// import { NodeResizer } from "@reactflow/node-resizer"
 import "@reactflow/node-resizer/dist/style.css";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useDebounce } from "@/hooks/use-debounce";
+// import { useDebounce } from "@/hooks/use-debounce"
 
 const nodeTypes = {
   custom: CustomNode,
@@ -75,8 +75,8 @@ function FlowEditorContent({
   const { project, getNodes, getEdges, setViewport, zoomIn, zoomOut, fitView } =
     useReactFlow();
 
-  const debouncedNodes = useDebounce(nodes, 1000);
-  const debouncedEdges = useDebounce(edges, 1000);
+  // const debouncedNodes = useDebounce(nodes, 1000)
+  // const debouncedEdges = useDebounce(edges, 1000)
 
   useEffect(() => {
     if (initialNodes.length > 0 || initialEdges.length > 0) {
@@ -85,6 +85,8 @@ function FlowEditorContent({
   }, [initialNodes, initialEdges, fitView]);
 
   useEffect(() => {
+    let saveTimeout: NodeJS.Timeout;
+
     const saveFlow = () => {
       if (onSave) {
         const currentNodes = getNodes();
@@ -93,14 +95,22 @@ function FlowEditorContent({
       }
     };
 
-    // Save on every change
-    saveFlow();
+    const debouncedSave = () => {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveFlow, 1000); // Debounce for 1 second
+    };
+
+    // Call debouncedSave whenever nodes or edges change
+    debouncedSave();
 
     // Also set up an autosave timer
     const autosaveTimer = setInterval(saveFlow, 30000); // Autosave every 30 seconds
 
-    return () => clearInterval(autosaveTimer);
-  }, [onSave, getNodes, getEdges]);
+    return () => {
+      clearTimeout(saveTimeout);
+      clearInterval(autosaveTimer);
+    };
+  }, [nodes, edges, onSave, getNodes, getEdges]);
 
   useEffect(() => {
     if (onSave) {

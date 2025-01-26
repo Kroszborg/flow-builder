@@ -33,7 +33,11 @@ export const flowStorage = {
   getFlows(): FlowData[] {
     try {
       const data = localStorage.getItem(STORAGE_KEY)
-      return data ? JSON.parse(data) : []
+      const flows: FlowData[] = data ? JSON.parse(data) : []
+      return flows.map((flow) => ({
+        ...flow,
+        updatedAt: flow.updatedAt || flow.createdAt,
+      }))
     } catch (error) {
       console.error("Error getting flows:", error)
       return []
@@ -43,7 +47,14 @@ export const flowStorage = {
   getFlow(id: string): FlowData | null {
     try {
       const flows = this.getFlows()
-      return flows.find((f) => f.id === id) || null
+      const flow = flows.find((f) => f.id === id)
+      if (flow) {
+        return {
+          ...flow,
+          updatedAt: flow.updatedAt || flow.createdAt,
+        }
+      }
+      return null
     } catch (error) {
       console.error("Error getting flow:", error)
       return null
