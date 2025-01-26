@@ -8,10 +8,8 @@ Flow Builder comes packed with powerful features to help you create and manage y
 
 - **Intuitive Drag-and-Drop Interface**: Create and modify workflows with simple drag-and-drop actions
 - **Multiple Node Types**: Choose between default and decision nodes to build complex flows
-- **Real-Time Collaboration**: Work together with your team in real-time
 - **Auto-Layout Functionality**: Automatically organize your workflow layouts for optimal visualization
 - **Export and Import Flows**: Save and share your workflows easily
-- **Responsive Design**: Access and edit your workflows from any device
 
 ## Getting Started
 
