@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./theme-toggle";
+import { Plus } from "lucide-react";
 
 export default function Header() {
   const pathname = usePathname();
@@ -19,6 +20,7 @@ export default function Header() {
             <li>
               <Link href="/new">
                 <Button variant={pathname === "/new" ? "default" : "ghost"}>
+                  <Plus className="w-4 h-4 mr-2" />
                   New Flow
                 </Button>
               </Link>

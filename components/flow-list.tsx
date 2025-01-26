@@ -40,9 +40,7 @@ export function FlowList() {
     };
 
     loadFlows();
-    // Reload flows every 5 seconds to keep the list updated
     const interval = setInterval(loadFlows, 5000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -81,6 +79,20 @@ export function FlowList() {
     flow.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (flows.length === 0) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-muted-foreground mb-4">No flows created yet.</p>
+        <Link href="/new">
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Create your first flow
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
@@ -90,76 +102,67 @@ export function FlowList() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-xs"
         />
-        <Link href="/flows/new">
+        <Link href="/new">
           <Button>
             <Plus className="w-4 h-4 mr-2" />
             Create New Flow
           </Button>
         </Link>
       </div>
-      {flows.length === 0 ? (
-        <div className="text-center p-8">
-          <p className="text-muted-foreground mb-4">No flows created yet.</p>
-          <Link href="/flows/new">
-            <Button>Create your first flow</Button>
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredFlows.map((flow) => (
-            <Card key={flow.id}>
-              <CardHeader>
-                <CardTitle>{flow.name}</CardTitle>
-                <CardDescription>
-                  Created: {new Date(flow.createdAt).toLocaleDateString()}
-                  {flow.updatedAt && (
-                    <>
-                      <br />
-                      Updated: {new Date(flow.updatedAt).toLocaleDateString()}
-                    </>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-2">
-                  <div className="flex justify-between">
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push(`/flows/${flow.id}`)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push(`/flows/${flow.id}/edit`)}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
-                    </Button>
-                  </div>
-                  <div className="flex justify-between">
-                    <Button
-                      variant="outline"
-                      onClick={() => handleDownload(flow)}
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => setDeleteFlowId(flow.id)}
-                    >
-                      <Trash className="w-4 h-4 mr-2" />
-                      Delete
-                    </Button>
-                  </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredFlows.map((flow) => (
+          <Card key={flow.id}>
+            <CardHeader>
+              <CardTitle>{flow.name}</CardTitle>
+              <CardDescription>
+                Created: {new Date(flow.createdAt).toLocaleDateString()}
+                {flow.updatedAt && (
+                  <>
+                    <br />
+                    Updated: {new Date(flow.updatedAt).toLocaleDateString()}
+                  </>
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between">
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/flows/${flow.id}`)}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/flows/${flow.id}`)}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                <div className="flex justify-between">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDownload(flow)}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setDeleteFlowId(flow.id)}
+                  >
+                    <Trash className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
       <ConfirmationDialog
         isOpen={!!deleteFlowId}
         onClose={() => setDeleteFlowId(null)}
