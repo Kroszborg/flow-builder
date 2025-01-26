@@ -1,7 +1,7 @@
-import { FlowList } from "@/components/flow-list"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { Plus } from "lucide-react"
+import { FlowList } from "@/components/flow-list";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 
 export default function FlowsPage() {
   return (
@@ -17,6 +17,5 @@ export default function FlowsPage() {
       </div>
       <FlowList />
     </div>
-  )
+  );
 }
-

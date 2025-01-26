@@ -9,6 +9,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import type { Node, Edge } from "reactflow";
+import { flowStorage } from "@/lib/flow-storage";
 
 export default function NewFlow() {
   const [name, setName] = useState("");
@@ -29,12 +30,13 @@ export default function NewFlow() {
       updatedAt: new Date().toISOString(),
     };
 
-    const storedFlows = localStorage.getItem("flows");
-    const flows = storedFlows ? JSON.parse(storedFlows) : [];
-    flows.push(newFlow);
-    localStorage.setItem("flows", JSON.stringify(flows));
-    toast.success("Flow created successfully!");
-    router.push("/flows");
+    const saved = flowStorage.saveFlow(newFlow);
+    if (saved) {
+      toast.success("Flow created successfully!");
+      router.push("/flows");
+    } else {
+      toast.error("Failed to create flow");
+    }
   };
 
   return (
