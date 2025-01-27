@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Edit, Eye } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { type Node, type Edge } from "reactflow";
+import type { Node, Edge } from "reactflow";
 import { flowStorage } from "@/lib/flow-storage";
 import type { FlowData } from "@/types/flow";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";

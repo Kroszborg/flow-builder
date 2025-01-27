@@ -43,6 +43,7 @@ import "reactflow/dist/style.css";
 import "@reactflow/node-resizer/dist/style.css";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useDebounce } from "@/hooks/use-debounce";
+import { ConfirmationDialog } from "./confirmation-dialog";
 
 const nodeTypes = {
   custom: CustomNode,
@@ -64,6 +65,7 @@ function FlowEditorContent({
   onSave,
   flowId,
   isReadOnly = false,
+  onDirtyChange,
 }: FlowEditorProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -72,6 +74,8 @@ function FlowEditorContent({
   const [nodeType, setNodeType] = useState("custom");
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
+    useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { project, getNodes, getEdges, setViewport, zoomIn, zoomOut, fitView } =
     useReactFlow();
@@ -92,15 +96,30 @@ function FlowEditorContent({
       const saveFlow = () => {
         onSave(debouncedNodes, debouncedEdges);
         setIsDirty(false);
+        if (onDirtyChange) {
+          onDirtyChange(false);
+        }
       };
       saveFlow();
     }
-  }, [debouncedNodes, debouncedEdges, onSave, isReadOnly, isDirty]);
+  }, [
+    debouncedNodes,
+    debouncedEdges,
+    onSave,
+    isReadOnly,
+    isDirty,
+    onDirtyChange,
+  ]);
 
   // Mark as dirty when nodes or edges change
   useEffect(() => {
-    setIsDirty(true);
-  }, []);
+    if (!isReadOnly) {
+      setIsDirty(true);
+      if (onDirtyChange) {
+        onDirtyChange(true);
+      }
+    }
+  }, [isReadOnly, onDirtyChange]); // Removed unnecessary dependencies: nodes, edges
 
   const onConnect = useCallback(
     (params: Connection | Edge) => {
@@ -144,9 +163,12 @@ function FlowEditorContent({
     if (onSave && !isReadOnly) {
       onSave(nodes, edges);
       setIsDirty(false);
+      if (onDirtyChange) {
+        onDirtyChange(false);
+      }
       toast.success("Flow saved successfully!");
     }
-  }, [nodes, edges, onSave, isReadOnly]);
+  }, [nodes, edges, onSave, isReadOnly, onDirtyChange]);
 
   const handleAutoLayout = useCallback(() => {
     const layoutedNodes = nodes.map((node, index) => {
@@ -223,6 +245,21 @@ function FlowEditorContent({
     },
     { enableOnFormTags: true }
   );
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isDirty) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   return (
     <div className="flex h-[calc(100vh-8rem)] bg-background border rounded-lg overflow-hidden">
@@ -356,6 +393,16 @@ function FlowEditorContent({
           )}
         </div>
       </div>
+      <ConfirmationDialog
+        isOpen={showUnsavedChangesDialog}
+        onClose={() => setShowUnsavedChangesDialog(false)}
+        onConfirm={() => {
+          setShowUnsavedChangesDialog(false);
+          handleSave();
+        }}
+        title="Unsaved Changes"
+        description="You have unsaved changes. Do you want to save them before leaving?"
+      />
     </div>
   );
 }
