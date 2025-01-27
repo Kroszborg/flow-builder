@@ -161,6 +161,7 @@ function FlowEditorContent({
 
   const handleSave = useCallback(() => {
     if (onSave && !isReadOnly) {
+      console.log("Saving flow...", { nodes, edges });
       onSave(nodes, edges);
       setIsDirty(false);
       if (onDirtyChange) {
