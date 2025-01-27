@@ -18,7 +18,7 @@ export const flowStorage = {
         flows.push({
           ...flow,
           createdAt: flow.createdAt || new Date().toISOString(),
-          updatedAt: flow.updatedAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         })
       }
 

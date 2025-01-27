@@ -291,7 +291,11 @@ function FlowEditorContent({
               <Plus className="w-4 h-4 mr-2" />
               Add Node
             </Button>
-            <Button onClick={handleSave} variant="outline" disabled={!isDirty}>
+            <Button
+              onClick={handleSave}
+              variant="outline"
+              disabled={!isDirty || isReadOnly}
+            >
               <Save className="w-4 h-4 mr-2" />
               Save Flow
             </Button>

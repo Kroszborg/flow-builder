@@ -91,7 +91,7 @@ export default function FlowDetail() {
       <FlowEditor
         initialNodes={flow.nodes}
         initialEdges={flow.edges}
-        onSave={isEditMode ? handleSave : undefined}
+        onSave={handleSave}
         flowId={flow.id}
         isReadOnly={!isEditMode}
         onDirtyChange={setIsDirty}
