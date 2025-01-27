@@ -29,21 +29,11 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Textarea } from "./ui/textarea";
-import {
-  Plus,
-  Save,
-  ZoomIn,
-  ZoomOut,
-  LayoutGrid,
-  Trash2,
-  Download,
-} from "lucide-react";
+import { Plus, ZoomIn, ZoomOut, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import "reactflow/dist/style.css";
 import "@reactflow/node-resizer/dist/style.css";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useDebounce } from "@/hooks/use-debounce";
-import { ConfirmationDialog } from "./confirmation-dialog";
 
 const nodeTypes = {
   custom: CustomNode,
@@ -63,7 +53,6 @@ function FlowEditorContent({
   initialNodes = [],
   initialEdges = [],
   onSave,
-  flowId,
   isReadOnly = false,
   onDirtyChange,
 }: FlowEditorProps) {
@@ -73,53 +62,22 @@ function FlowEditorContent({
   const [nodeDescription, setNodeDescription] = useState("");
   const [nodeType, setNodeType] = useState("custom");
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
-  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
-    useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { project, getNodes, getEdges, setViewport, zoomIn, zoomOut, fitView } =
-    useReactFlow();
+  const { project, setViewport, zoomIn, zoomOut, fitView } = useReactFlow();
 
-  // Debounce the nodes and edges changes
-  const debouncedNodes = useDebounce(nodes, 1000);
-  const debouncedEdges = useDebounce(edges, 1000);
-
+  // Notify parent of changes
   useEffect(() => {
-    if (initialNodes.length > 0 || initialEdges.length > 0) {
-      fitView();
+    if (onSave) {
+      onSave(nodes, edges);
     }
-  }, [initialNodes, initialEdges, fitView]);
-
-  // Handle auto-saving when nodes or edges change
-  useEffect(() => {
-    if (!isReadOnly && onSave && isDirty) {
-      const saveFlow = () => {
-        onSave(debouncedNodes, debouncedEdges);
-        setIsDirty(false);
-        if (onDirtyChange) {
-          onDirtyChange(false);
-        }
-      };
-      saveFlow();
-    }
-  }, [
-    debouncedNodes,
-    debouncedEdges,
-    onSave,
-    isReadOnly,
-    isDirty,
-    onDirtyChange,
-  ]);
+  }, [nodes, edges, onSave]);
 
   // Mark as dirty when nodes or edges change
   useEffect(() => {
-    if (!isReadOnly) {
-      setIsDirty(true);
-      if (onDirtyChange) {
-        onDirtyChange(true);
-      }
+    if (!isReadOnly && onDirtyChange) {
+      onDirtyChange(nodes.length > 0 || edges.length > 0);
     }
-  }, [isReadOnly, onDirtyChange]); // Removed unnecessary dependencies: nodes, edges
+  }, [nodes.length, edges.length, isReadOnly, onDirtyChange]);
 
   const onConnect = useCallback(
     (params: Connection | Edge) => {
@@ -147,47 +105,19 @@ function FlowEditorContent({
       toast.error("Please enter a node name");
       return;
     }
+
     const newNode: Node = {
       id: `node-${Date.now()}`,
       type: nodeType,
       position: project({ x: Math.random() * 500, y: Math.random() * 300 }),
       data: { label: nodeName, description: nodeDescription },
     };
+
     setNodes((nds) => [...nds, newNode]);
     setNodeName("");
     setNodeDescription("");
     toast.success("Node added successfully!");
   }, [nodeName, nodeDescription, nodeType, project, setNodes]);
-
-  const handleSave = useCallback(() => {
-    if (onSave && !isReadOnly) {
-      console.log("Saving flow...", { nodes, edges });
-      onSave(nodes, edges);
-      setIsDirty(false);
-      if (onDirtyChange) {
-        onDirtyChange(false);
-      }
-      toast.success("Flow saved successfully!");
-    }
-  }, [nodes, edges, onSave, isReadOnly, onDirtyChange]);
-
-  const handleAutoLayout = useCallback(() => {
-    const layoutedNodes = nodes.map((node, index) => {
-      const columns = Math.ceil(Math.sqrt(nodes.length));
-      const row = Math.floor(index / columns);
-      const col = index % columns;
-      return {
-        ...node,
-        position: {
-          x: col * 250,
-          y: row * 150,
-        },
-      };
-    });
-    setNodes(layoutedNodes);
-    setViewport({ x: 0, y: 0, zoom: 1 });
-    toast.success("Auto-layout applied successfully!");
-  }, [nodes, setNodes, setViewport]);
 
   const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
@@ -211,59 +141,12 @@ function FlowEditorContent({
     }
   }, [selectedNode, setNodes, setEdges]);
 
-  const handleExport = useCallback(() => {
-    const flow = {
-      id: flowId,
-      nodes: getNodes(),
-      edges: getEdges(),
-    };
-    const jsonString = JSON.stringify(flow, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `flow-${flowId || "export"}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("Flow exported successfully!");
-  }, [getNodes, getEdges, flowId]);
-
-  useHotkeys(
-    "ctrl+s, cmd+s",
-    (event) => {
-      event.preventDefault();
-      handleSave();
-    },
-    { enableOnFormTags: true }
-  );
-
-  useHotkeys(
-    "delete, backspace",
-    () => {
-      if (selectedNode) handleDeleteNode();
-    },
-    { enableOnFormTags: true }
-  );
-
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (isDirty) {
-        event.preventDefault();
-        event.returnValue = "";
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [isDirty]);
+  useHotkeys("delete,backspace", () => {
+    if (selectedNode && !isReadOnly) handleDeleteNode();
+  });
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] bg-background border rounded-lg overflow-hidden">
+    <div className="flex h-[calc(100vh-16rem)] bg-background border rounded-lg overflow-hidden">
       <div className="flex-1 flex flex-col">
         {!isReadOnly && (
           <div className="flex flex-wrap gap-4 p-4 border-b">
@@ -291,14 +174,6 @@ function FlowEditorContent({
             <Button onClick={addNode} disabled={!nodeName}>
               <Plus className="w-4 h-4 mr-2" />
               Add Node
-            </Button>
-            <Button
-              onClick={handleSave}
-              variant="outline"
-              disabled={!isDirty || isReadOnly}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save Flow
             </Button>
           </div>
         )}
@@ -332,82 +207,43 @@ function FlowEditorContent({
             <Background />
             <Controls />
             <MiniMap />
-            {!isReadOnly && (
-              <Panel
-                position="top-right"
-                className="bg-background border rounded-md shadow-md p-2"
-              >
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => zoomIn()}
-                    variant="outline"
-                    size="icon"
-                    title="Zoom In"
-                  >
-                    <ZoomIn className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    onClick={() => zoomOut()}
-                    variant="outline"
-                    size="icon"
-                    title="Zoom Out"
-                  >
-                    <ZoomOut className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    onClick={handleAutoLayout}
-                    variant="outline"
-                    size="icon"
-                    title="Auto Layout"
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    onClick={handleExport}
-                    variant="outline"
-                    size="icon"
-                    title="Export Flow"
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </div>
-              </Panel>
-            )}
-          </ReactFlow>
-          {selectedNode && !isReadOnly && (
-            <div className="absolute bottom-4 left-4 p-4 bg-background border rounded-lg shadow-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">Selected Node</h3>
+            <Panel
+              position="top-right"
+              className="bg-background border rounded-md shadow-md p-2"
+            >
+              <div className="flex gap-2">
                 <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDeleteNode}
+                  onClick={() => zoomIn()}
+                  variant="outline"
+                  size="icon"
+                  title="Zoom In"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <ZoomIn className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={() => zoomOut()}
+                  variant="outline"
+                  size="icon"
+                  title="Zoom Out"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={() => {
+                    setViewport({ x: 0, y: 0, zoom: 1 });
+                    fitView();
+                  }}
+                  variant="outline"
+                  size="icon"
+                  title="Reset View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {selectedNode.data.label}
-                {selectedNode.data.description && (
-                  <span className="block mt-1">
-                    {selectedNode.data.description}
-                  </span>
-                )}
-              </p>
-            </div>
-          )}
+            </Panel>
+          </ReactFlow>
         </div>
       </div>
-      <ConfirmationDialog
-        isOpen={showUnsavedChangesDialog}
-        onClose={() => setShowUnsavedChangesDialog(false)}
-        onConfirm={() => {
-          setShowUnsavedChangesDialog(false);
-          handleSave();
-        }}
-        title="Unsaved Changes"
-        description="You have unsaved changes. Do you want to save them before leaving?"
-      />
     </div>
   );
 }

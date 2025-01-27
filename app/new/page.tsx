@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { FlowEditor } from "@/components/flow-editor";
 import { Button } from "@/components/ui/button";
@@ -13,31 +13,50 @@ import { flowStorage } from "@/lib/flow-storage";
 
 export default function NewFlow() {
   const [name, setName] = useState("");
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
   const router = useRouter();
 
-  const handleSave = (nodes: Node[], edges: Edge[]) => {
-    if (!name) {
+  const handleFlowChange = useCallback((newNodes: Node[], newEdges: Edge[]) => {
+    setNodes(newNodes);
+    setEdges(newEdges);
+    setIsDirty(true);
+  }, []);
+
+  const handleSave = useCallback(() => {
+    if (!name.trim()) {
       toast.error("Please enter a flow name");
       return;
     }
 
-    const newFlow = {
-      id: crypto.randomUUID(),
-      name,
-      nodes,
-      edges,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    if (nodes.length === 0) {
+      toast.error("Please add at least one node to your flow");
+      return;
+    }
 
-    const saved = flowStorage.saveFlow(newFlow);
-    if (saved) {
-      toast.success("Flow created successfully!");
-      router.push("/flows");
-    } else {
+    try {
+      const newFlow = {
+        id: crypto.randomUUID(),
+        name: name.trim(),
+        nodes,
+        edges,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const saved = flowStorage.saveFlow(newFlow);
+      if (saved) {
+        toast.success("Flow created successfully!");
+        router.push("/flows");
+      } else {
+        throw new Error("Failed to save flow");
+      }
+    } catch (error) {
+      console.error("Error saving flow:", error);
       toast.error("Failed to create flow");
     }
-  };
+  }, [name, nodes, edges, router]);
 
   return (
     <div className="container mx-auto p-8">
@@ -57,7 +76,16 @@ export default function NewFlow() {
           className="max-w-[300px]"
         />
       </div>
-      <FlowEditor onSave={handleSave} />
+      <FlowEditor onSave={handleFlowChange} onDirtyChange={setIsDirty} />
+      <div className="mt-4 flex justify-end">
+        <Button
+          onClick={handleSave}
+          disabled={!name.trim() || !isDirty || nodes.length === 0}
+          className="px-6"
+        >
+          Save Flow
+        </Button>
+      </div>
     </div>
   );
 }
