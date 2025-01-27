@@ -55,6 +55,7 @@ interface FlowEditorProps {
   onSave?: (nodes: Node[], edges: Edge[]) => void;
   flowId?: string;
   isReadOnly?: boolean;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 function FlowEditorContent({
